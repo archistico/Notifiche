@@ -12,3 +12,7 @@ Configurabile tramite maschera e salva le impostazioni in un file json.
 - Estrai il contenuto nella cartella desiderata  
 - Esegui il software cliccando sull'eseguibile (NotifichePause.exe)  
 
+## Credits
+
+- DEV: Emilie Rollandin
+- Icon in public domain: [Paomedia](https://www.iconarchive.com/show/small-n-flat-icons-by-paomedia/post-it-icon.html)
