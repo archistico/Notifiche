@@ -119,7 +119,9 @@ namespace NotifichePauseW
 
             DateTime scadenza = inizio.AddMinutes(configurazione.Minuti);
 
-            tsManca.Text = $"Mancano {(scadenza - ora).TotalMinutes.ToString("N1")} minuti alla notifica";
+            string testo = $"Mancano {(scadenza - ora).TotalMinutes.ToString("N1")} minuti alla notifica";
+            tsManca.Text = testo;
+            notifyIcon1.Text = $"Notifiche - {testo}";
 
             if (diffInSeconds >= (configurazione.Minuti * 60))
             {
