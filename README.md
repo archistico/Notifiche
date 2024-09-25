@@ -3,8 +3,9 @@
 Piccola app minimizzabile che invia una notifica di sistema ogni tot minuti.  
 Configurabile tramite maschera e salva le impostazioni in un file json.
 
-![Configurazione](https://github.com/archistico/Notifiche/blob/main/screenshot-notify.png?raw=true)
-![Notifica](https://github.com/archistico/Notifiche/blob/main/screenshot-notify-show.png?raw=true)
+![Impostazioni](https://github.com/archistico/Notifiche/blob/main/screenshot-app-impostazioni.png?raw=true)
+![Notifica](https://github.com/archistico/Notifiche/blob/main/screenshot-app-notifica.png?raw=true)
+![Icona](https://github.com/archistico/Notifiche/blob/main/screenshot-app-icona.png?raw=true)
 
 ## Installazione
 
