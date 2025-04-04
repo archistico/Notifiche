@@ -26,20 +26,19 @@ using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace NotifichePauseW
 {
-    public partial class Form1 : Form
+    public partial class frmConfigurazione : Form
     {
         string pathConfigurazione = "configurazione_notifiche.json";
+        string pathSveglie = "sveglie_notifiche.json";
+
         Configurazione configurazione = new Configurazione();
+        Sveglie sveglie = new Sveglie();
+
         DateTime inizio = DateTime.Now;
 
-        public Form1()
+        public frmConfigurazione()
         {
             InitializeComponent();
-        }
-
-        private void btnTest_Click(object sender, EventArgs e)
-        {
-            LanciaNotifica(tbxTitolo.Text, tbxTesto.Text);
         }
 
         private void LanciaNotifica(string titolo, string testo)
@@ -50,8 +49,9 @@ namespace NotifichePauseW
                 .AddButton(new ToastButton().SetContent("OK"))
                 .Show(toast =>
                 {
-                    toast.ExpirationTime = DateTime.Now.AddSeconds(3);
-                });
+                    toast.ExpirationTime = DateTime.Now.AddSeconds(10);
+                })
+                ;
         }
 
         private void btnSalva_Click(object sender, EventArgs e)
@@ -74,6 +74,8 @@ namespace NotifichePauseW
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            this.WindowState = FormWindowState.Minimized;
+
             if (File.Exists(pathConfigurazione))
             {
                 string conf_json = File.ReadAllText(pathConfigurazione);
@@ -84,11 +86,31 @@ namespace NotifichePauseW
                 nudMinuti.Value = configurazione.Minuti;
             }
 
+            if (File.Exists(pathSveglie))
+            {
+                string sveglie_json = File.ReadAllText(pathSveglie);
+                sveglie = JsonSerializer.Deserialize<Sveglie>(sveglie_json);
+            }
+
+            RiazzeraSveglie(sveglie);
+            AggiornaDGV();
+
             configurazione.Minuti = (int)nudMinuti.Value;
             configurazione.Titolo = tbxTitolo.Text;
             configurazione.Testo = tbxTesto.Text;
 
+            nudSvegliaOra.Value = DateTime.Now.Hour;
+            nudSvegliaMinuto.Value = DateTime.Now.Minute;
+
             timer1.Enabled = true;
+        }
+
+        private void RiazzeraSveglie(Sveglie s)
+        {
+            foreach(Sveglia el in s.lista)
+            {
+                el.Eseguita = false;
+            }
         }
 
         private void btnMinimizza_Click(object sender, EventArgs e)
@@ -103,6 +125,12 @@ namespace NotifichePauseW
                 ShowInTaskbar = false;
                 notifyIcon1.Visible = true;
             }
+
+            if (this.WindowState == FormWindowState.Normal)
+            {
+                nudSvegliaOra.Value = DateTime.Now.Hour;
+                nudSvegliaMinuto.Value = DateTime.Now.Minute;
+            }
         }
 
         private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -114,6 +142,8 @@ namespace NotifichePauseW
 
         private void timer1_Tick(object sender, EventArgs e)
         {
+            // Controlla notifiche ripetute
+
             DateTime ora = DateTime.Now;
             int diffInSeconds = (int)(ora - inizio).TotalSeconds;
 
@@ -128,18 +158,137 @@ namespace NotifichePauseW
                 LanciaNotifica(tbxTitolo.Text, tbxTesto.Text);
                 inizio = DateTime.Now;
             }
+
+            // Controlla sveglia
+            foreach (Sveglia el in sveglie.lista)
+            {
+                if (ora.Hour == el.Ora && ora.Minute == el.Minuti && el.Eseguita == false)
+                {
+                    el.Eseguita = true;
+                    LanciaNotifica(el.Titolo, el.Testo);
+                }
+            }
+
+            // Cambia orario
+            lblData.Text = ora.ToString("dddd").ToUpper() + " " + ora.ToString("dd/MM/yyyy HH:mm:ss");
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void btnSalvaSveglia_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show($"Vuoi chiudere l'app?{Environment.NewLine}Sì per chiudere, No per minimizzare a icona", "Informazione", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2, MessageBoxOptions.RightAlign) == DialogResult.Yes) 
+            Sveglia sveglia = new Sveglia()
             {
-                e.Cancel = false;                
-            } else
+                Ora = (int)nudSvegliaOra.Value,
+                Minuti = (int)nudSvegliaMinuto.Value,
+                Titolo = tbxSvegliaTitolo.Text,
+                Testo = tbxSvegliaTesto.Text,
+                Eseguita = false
+            };            
+
+            sveglie.lista.Add(sveglia);
+
+            SalvaSveglie();
+            AggiornaDGV();
+        }
+
+        private void SalvaSveglie()
+        {
+            if(sveglie.lista.Count >= 0)
             {
-                e.Cancel = true;
-                this.WindowState = FormWindowState.Minimized;
+                string sveglie_json = JsonSerializer.Serialize(sveglie);
+                using (StreamWriter writer = new StreamWriter(pathSveglie))
+                {
+                    writer.WriteLine(sveglie_json);
+                }
+            }            
+        }
+
+        private void AggiornaDGV()
+        {
+            dgv.Columns.Clear();
+            dgv.DataSource = null;
+
+            if (sveglie.lista.Count == 0) return;
+
+            dgv.DataSource = sveglie.lista;
+
+            dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.WhiteSmoke;
+            dgv.MultiSelect = false;
+
+            int indice = 0;
+
+            dgv.Columns["Ora"].DisplayIndex = indice;
+            dgv.Columns["Ora"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dgv.Columns["Ora"].Width = 50;
+            dgv.Columns["Ora"].HeaderText = "Ora";
+
+            indice++;
+            dgv.Columns["Minuti"].DisplayIndex = indice;
+            dgv.Columns["Minuti"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dgv.Columns["Minuti"].Width = 50;
+            dgv.Columns["Minuti"].HeaderText = "Minuti";
+
+            indice++;
+            dgv.Columns["Titolo"].DisplayIndex = indice;
+            dgv.Columns["Titolo"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dgv.Columns["Titolo"].Width = 155;
+            dgv.Columns["Titolo"].HeaderText = "Titolo";
+
+            indice++;
+            dgv.Columns["Testo"].DisplayIndex = indice;
+            dgv.Columns["Testo"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dgv.Columns["Testo"].MinimumWidth = 200;
+            dgv.Columns["Testo"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dgv.Columns["Testo"].HeaderText = "Testo";
+
+            indice++;
+            dgv.Columns["Eseguita"].DisplayIndex = indice;
+            dgv.Columns["Eseguita"].Visible = false;
+
+            var deleteButtonColumn = new DataGridViewImageColumn();
+            deleteButtonColumn.Name = "Canc";
+            deleteButtonColumn.Width = 35;
+            deleteButtonColumn.Image = NotifichePause.Properties.Resources.cancella;
+
+            dgv.Columns.Add(deleteButtonColumn);
+
+            indice++;
+            dgv.Columns["Canc"].DisplayIndex = indice;
+        }
+
+        private void dgv_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
+
+            if (dgv.Columns.Contains("Canc") == false)
+                return;
+
+            // se lo metto dopo la cancellazione della riga mi da errore
+            if (!e.ColumnIndex.Equals(dgv.Columns["Canc"].Index))
+            {
+                Sveglia s = sveglie.lista.ElementAt(e.RowIndex);
+                nudSvegliaOra.Value = s.Ora;
+                nudSvegliaMinuto.Value = s.Minuti;
+                tbxSvegliaTitolo.Text = s.Titolo;
+                tbxSvegliaTesto.Text = s.Testo;
             }
+
+            if (e.ColumnIndex.Equals(dgv.Columns["Canc"].Index))
+            {
+                if (sveglie.lista.Count > 0)
+                {
+                  sveglie.lista.RemoveAt(e.RowIndex);
+
+                  SalvaSveglie();
+                  AggiornaDGV();
+                }                
+            }           
+
+        }
+
+        private void btnEsci_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
         }
     }
 }
